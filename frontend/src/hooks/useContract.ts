@@ -3,7 +3,7 @@ import { ethers } from "ethers";
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from "../config/contract";
 import { useAppKitProvider } from "@reown/appkit/react";
 
-const RPC_URL = "https://lisk-sepolia.drpc.org";
+const RPC_URL = "https://rpc.sepolia-api.lisk.com";
 const _readProvider = new ethers.JsonRpcProvider(RPC_URL);
 const _readContract = new ethers.Contract(
   CONTRACT_ADDRESS,
