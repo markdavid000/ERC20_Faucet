@@ -23,9 +23,9 @@ export function useWallet() {
     setIsConnected,
     setIsConnecting,
     setChainId,
-    addToast,
   } = useApp();
 
+  // Sync account state into context
   useEffect(() => {
     setAddress(appKitAddress ?? null);
     setIsConnected(appKitConnected);
@@ -39,37 +39,17 @@ export function useWallet() {
     setIsConnecting,
   ]);
 
+  // Sync chain
   useEffect(() => {
     setChainId(appKitChainId ? Number(appKitChainId) : null);
   }, [appKitChainId, setChainId]);
 
-  useEffect(() => {
-    if (appKitConnected && appKitAddress) {
-      addToast({
-        type: "success",
-        title: "Wallet Connected",
-        message: `${appKitAddress.slice(0, 6)}…${appKitAddress.slice(-4)}`,
-      });
-    }
-  }, [appKitConnected]);
-
   const connect = useCallback(() => {
     open();
   }, [open]);
-
-  const disconnect = useCallback(async () => {
-    // const { disconnect: appKitDisconnect } = await import(
-    //   "@reown/appkit/react"
-    // );
-
+  const disconnect = useCallback(() => {
     open({ view: "Account" });
   }, [open]);
 
-  return {
-    address,
-    isConnected,
-    isConnecting,
-    connect,
-    disconnect,
-  };
+  return { address, isConnected, isConnecting, connect, disconnect };
 }

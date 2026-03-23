@@ -17,7 +17,11 @@ createAppKit({
   networks,
   projectId: WALLETCONNECT_PROJECT_ID,
   metadata: appKitMetadata,
-  features: { analytics: true },
+  features: {
+    analytics: false,
+    email: false,
+    socials: [],
+  },
   themeMode: "dark",
   themeVariables: {
     "--apkt-accent": "#8ff5ff",
@@ -25,6 +29,8 @@ createAppKit({
     "--apkt-color-mix-strength": 20,
     "--apkt-border-radius-master": "8px",
   },
+  enableWalletConnect: true,
+  enableEIP6963: true,
 });
 
 ReactDOM.createRoot(document.getElementById("root")!).render(

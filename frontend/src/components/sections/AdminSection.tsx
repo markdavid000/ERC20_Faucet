@@ -1,11 +1,17 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ShieldCheck, CheckCircle, AlertCircle, ExternalLink } from "lucide-react";
+import {
+  ShieldCheck,
+  CheckCircle,
+  AlertCircle,
+  ExternalLink,
+  ShieldOff,
+} from "lucide-react";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
 import { Badge } from "../ui/Badge";
-import { SectionHeader } from "../ui/SectionHeader";
 import { useMintMTK } from "../../hooks/useMintMTK";
+import { useOwner } from "../../hooks/useOwner";
 import { useApp } from "../../context/AppContext";
 import { shortenAddress } from "../../lib/utils";
 import { BLOCK_EXPLORER } from "../../config/contract";
@@ -13,15 +19,26 @@ import { BLOCK_EXPLORER } from "../../config/contract";
 export const AdminSection: React.FC = () => {
   const { isConnected, address } = useApp();
   const { loading, success, txHash, error, mint, reset } = useMintMTK();
+  const { isOwner, loading: ownerLoading } = useOwner();
 
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [recipientError, setRecipientError] = useState("");
   const [amountError, setAmountError] = useState("");
 
+  useEffect(() => {
+    setRecipient("");
+    setAmount("");
+    setRecipientError("");
+    setAmountError("");
+    reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address]);
+
   const handleMint = async () => {
     setRecipientError("");
     setAmountError("");
+
     let valid = true;
     if (!recipient.trim()) {
       setRecipientError("Recipient address is required.");
@@ -33,6 +50,8 @@ export const AdminSection: React.FC = () => {
     }
     if (!valid) return;
     await mint(recipient, amount);
+
+    handleReset();
   };
 
   const handleReset = () => {
@@ -41,40 +60,70 @@ export const AdminSection: React.FC = () => {
     setAmount("");
   };
 
+  // Fix #5: button disabled + message when not owner
+  const canMint = isConnected && isOwner;
+
   return (
     <section className="mb-32" id="admin">
-      <SectionHeader
-        title="Void Architect Panel"
-        subtitle="Owner-only minting interface."
-        badge={<Badge variant="secondary">Authorized Access Only</Badge>}
-      />
-
+      {/* Fix #9: single heading, no duplication */}
       <div className="relative p-[1px] rounded-2xl bg-gradient-to-r from-outline-variant/50 via-transparent to-outline-variant/50">
         <div className="bg-surface-container-low rounded-2xl p-8 md:p-12">
-          {/* Header */}
+          {/* Header — only once */}
           <div className="flex flex-col md:flex-row justify-between gap-6 mb-12">
             <div>
-              <Badge variant="secondary" className="mb-4">Authorized Access Only</Badge>
+              <Badge variant="secondary" className="mb-3">
+                Authorized Access Only
+              </Badge>
               <h2 className="font-headline text-3xl font-bold uppercase tracking-tight">
                 Void Architect Panel
               </h2>
+              <p className="text-on-surface-variant font-body text-sm mt-1">
+                Owner-only token minting interface.
+              </p>
             </div>
             <div className="flex items-center gap-3">
               <ShieldCheck className="w-5 h-5 text-outline" />
               {isConnected && address ? (
                 <span className="text-on-surface-variant font-body text-sm">
-                  Connected as{" "}
-                  <span className="text-secondary font-semibold">{shortenAddress(address)}</span>
+                  {isOwner ? (
+                    <span className="text-tertiary-dim font-semibold">
+                      ✓ Owner Connected
+                    </span>
+                  ) : (
+                    <span>{shortenAddress(address)}</span>
+                  )}
                 </span>
               ) : (
-                <span className="text-on-surface-variant font-body text-sm">Not Connected</span>
+                <span className="text-on-surface-variant font-body text-sm">
+                  Not Connected
+                </span>
               )}
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             {/* Mint form */}
-            <div className="space-y-8">
+            <div className="space-y-6">
+              {/* Fix #5: not-owner warning */}
+              {isConnected && !ownerLoading && !isOwner && (
+                <motion.div
+                  initial={{ opacity: 0, y: -6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="flex items-start gap-3 p-4 rounded-xl bg-error-container/10 border border-error/20"
+                >
+                  <ShieldOff className="w-5 h-5 text-error flex-shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-error font-bold text-sm font-label">
+                      Not an Admin
+                    </p>
+                    <p className="text-on-surface-variant text-xs font-body mt-0.5">
+                      Your connected wallet is not the contract owner and cannot
+                      mint tokens.
+                    </p>
+                  </div>
+                </motion.div>
+              )}
+
               {!isConnected && (
                 <div className="flex items-start gap-3 p-4 rounded-xl bg-surface-container border border-outline-variant/20">
                   <AlertCircle className="w-5 h-5 text-outline flex-shrink-0 mt-0.5" />
@@ -88,10 +137,13 @@ export const AdminSection: React.FC = () => {
                 label="Recipient Address"
                 placeholder="0x..."
                 value={recipient}
-                onChange={(e) => { setRecipient(e.target.value); setRecipientError(""); }}
+                onChange={(e) => {
+                  setRecipient(e.target.value);
+                  setRecipientError("");
+                }}
                 error={recipientError}
                 accentColor="secondary"
-                disabled={!isConnected}
+                disabled={!canMint}
               />
 
               <Input
@@ -100,23 +152,35 @@ export const AdminSection: React.FC = () => {
                 type="number"
                 min="0"
                 value={amount}
-                onChange={(e) => { setAmount(e.target.value); setAmountError(""); }}
+                onChange={(e) => {
+                  setAmount(e.target.value);
+                  setAmountError("");
+                }}
                 error={amountError}
                 accentColor="secondary"
-                disabled={!isConnected}
+                disabled={!canMint}
               />
 
-              <Button
-                variant="secondary"
-                size="lg"
-                loading={loading}
-                loadingText="Minting…"
-                disabled={loading || !isConnected}
-                onClick={handleMint}
-                className="px-12"
-              >
-                Mint Tokens
-              </Button>
+              {/* Fix #5: disabled with tooltip-like state when not owner */}
+              <div className="space-y-1">
+                <Button
+                  variant="secondary"
+                  size="lg"
+                  loading={loading}
+                  loadingText="Minting…"
+                  disabled={loading || !canMint}
+                  onClick={handleMint}
+                  className="px-12"
+                >
+                  Mint Tokens
+                </Button>
+                {isConnected && !isOwner && !ownerLoading && (
+                  <p className="text-xs text-on-surface-variant font-body pl-1">
+                    You're not an admin — minting is restricted to the contract
+                    owner.
+                  </p>
+                )}
+              </div>
 
               {/* Error */}
               <AnimatePresence>
@@ -125,14 +189,22 @@ export const AdminSection: React.FC = () => {
                     initial={{ opacity: 0, y: -8 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0 }}
-                    className="flex items-center gap-3 p-4 rounded-xl bg-error-container/10 border border-error/20"
+                    className="flex items-start gap-3 p-4 rounded-xl bg-error-container/10 border border-error/20"
                   >
-                    <AlertCircle className="w-5 h-5 text-error flex-shrink-0" />
+                    <AlertCircle className="w-5 h-5 text-error flex-shrink-0 mt-0.5" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-error font-bold text-sm">Mint Failed</p>
-                      <p className="text-on-surface-variant text-xs truncate">{error}</p>
+                      <p className="text-error font-bold text-sm font-label">
+                        Mint Failed
+                      </p>
+                      {/* Fix #4: human-readable errors from parseContractError */}
+                      <p className="text-on-surface-variant text-xs font-body mt-0.5 break-words">
+                        {error}
+                      </p>
                     </div>
-                    <button onClick={reset} className="text-xs text-outline hover:text-on-surface uppercase font-label">
+                    <button
+                      onClick={reset}
+                      className="text-xs text-outline hover:text-on-surface uppercase font-label flex-shrink-0"
+                    >
                       Dismiss
                     </button>
                   </motion.div>
@@ -153,9 +225,11 @@ export const AdminSection: React.FC = () => {
                       <CheckCircle className="w-5 h-5 text-on-tertiary" />
                     </div>
                     <div>
-                      <p className="text-on-tertiary font-bold text-sm font-label">Mint Successful!</p>
+                      <p className="text-on-tertiary font-bold text-sm font-label">
+                        Mint Successful!
+                      </p>
                       <p className="text-on-surface-variant text-xs font-body">
-                        {amount} MTK minted to {shortenAddress(recipient)}
+                        {amount} MTK sent to {shortenAddress(recipient)}
                       </p>
                     </div>
                     <a
@@ -180,9 +254,9 @@ export const AdminSection: React.FC = () => {
               </h4>
               <ul className="space-y-4 text-sm text-on-surface-variant font-body">
                 {[
-                  "Only addresses with the MINTER_ROLE can execute these transactions.",
-                  "All minting events are broadcasted to the public ledger for auditability.",
-                  "The minting function respects the Max Supply constant in the MTK contract.",
+                  "Only the contract owner address can execute mint transactions.",
+                  "All minting events are broadcast to the public ledger for auditability.",
+                  "The minting function enforces the Max Supply cap in the MTK contract.",
                 ].map((text, i) => (
                   <motion.li
                     key={i}

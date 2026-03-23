@@ -8,17 +8,17 @@ import { formatPercentage } from "../../lib/utils";
 import { Wallet, Coins, Clock, TrendingUp } from "lucide-react";
 
 export const StatsSection: React.FC = () => {
-  const { contractStats, statsLoading, userStats, isConnected, address } = useApp();
+  const { contractStats, statsLoading, userStats, isConnected, address } =
+    useApp();
 
-  const totalMinted = parseFloat(contractStats?.totalSupply ?? "0");
-  const maxSupply = parseFloat(contractStats?.maxSupply ?? "10000000");
-  const progress = formatPercentage(totalMinted, maxSupply);
+  // Fix #4: use the raw numbers for ratio math, not the pre-formatted strings
+  const totalSupplyRaw = contractStats?.totalSupplyRaw ?? 0;
+  const maxSupplyRaw = contractStats?.maxSupplyRaw ?? 10_000_000;
+  const progress = formatPercentage(totalSupplyRaw, maxSupplyRaw);
 
-  const displayTotal = contractStats
-    ? totalMinted >= 1_000_000
-      ? `${(totalMinted / 1_000_000).toFixed(1)}M`
-      : `${(totalMinted / 1_000).toFixed(1)}K`
-    : "—";
+  // Display string already correctly formatted by formatTokenAmount
+  // e.g. "300.00" for small amounts, "4.20K" for thousands, "10.00M" for millions
+  const displayTotal = statsLoading ? "…" : contractStats?.totalSupply ?? "—";
 
   return (
     <section className="mb-32" id="stats">
@@ -29,7 +29,6 @@ export const StatsSection: React.FC = () => {
 
       {/* Global Stats Row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* Max Supply */}
         <StatCard
           label="Max Supply"
           value={statsLoading ? "…" : "10M"}
@@ -39,22 +38,25 @@ export const StatsSection: React.FC = () => {
           delay={0}
         />
 
-        {/* Total Minted */}
+        {/* Fix #4: displayTotal is already correctly formatted — use as-is */}
         <StatCard
           label="Total Minted"
-          value={statsLoading ? "…" : displayTotal}
+          value={displayTotal}
           subValue="/ 10M"
           progress={statsLoading ? 0 : progress}
-          footer={`${progress.toFixed(1)}% of ecosystem circulating`}
+          footer={`${progress.toFixed(2)}% of ecosystem circulating`}
           accentColor="primary"
           delay={0.1}
         />
 
-        {/* MTK Price / Status */}
         <StatCard
           label="MTK Price"
           value="Ethereal"
-          badge={<Badge variant="secondary" pulseDot>Testnet</Badge>}
+          badge={
+            <Badge variant="secondary" pulseDot>
+              Testnet
+            </Badge>
+          }
           footer={
             <span className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-secondary animate-pulse" />
@@ -66,9 +68,8 @@ export const StatsSection: React.FC = () => {
         />
       </div>
 
-      {/* Additional read stats */}
+      {/* Additional read stats row */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        {/* Claim Amount */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -80,7 +81,9 @@ export const StatsSection: React.FC = () => {
             <Coins className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <p className="font-label text-xs uppercase tracking-widest text-outline mb-1">Claim Amount</p>
+            <p className="font-label text-xs uppercase tracking-widest text-outline mb-1">
+              Claim Amount
+            </p>
             <p className="font-headline text-2xl font-bold">
               {statsLoading ? "…" : contractStats?.claimAmount ?? "100"}{" "}
               <span className="text-primary-dim text-lg">MTK</span>
@@ -88,7 +91,6 @@ export const StatsSection: React.FC = () => {
           </div>
         </motion.div>
 
-        {/* Cooldown */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -100,14 +102,15 @@ export const StatsSection: React.FC = () => {
             <Clock className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <p className="font-label text-xs uppercase tracking-widest text-outline mb-1">Cooldown Period</p>
+            <p className="font-label text-xs uppercase tracking-widest text-outline mb-1">
+              Cooldown Period
+            </p>
             <p className="font-headline text-2xl font-bold">
               24 <span className="text-primary-dim text-lg">Hours</span>
             </p>
           </div>
         </motion.div>
 
-        {/* User Balance */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
@@ -119,20 +122,24 @@ export const StatsSection: React.FC = () => {
             <Wallet className="w-6 h-6 text-secondary" />
           </div>
           <div>
-            <p className="font-label text-xs uppercase tracking-widest text-outline mb-1">Your Balance</p>
+            <p className="font-label text-xs uppercase tracking-widest text-outline mb-1">
+              Your Balance
+            </p>
             {isConnected && address ? (
               <p className="font-headline text-2xl font-bold">
                 {userStats?.balance ?? "—"}{" "}
                 <span className="text-secondary text-lg">MTK</span>
               </p>
             ) : (
-              <p className="text-on-surface-variant font-body text-sm">Connect wallet to view</p>
+              <p className="text-on-surface-variant font-body text-sm">
+                Connect wallet to view
+              </p>
             )}
           </div>
         </motion.div>
       </div>
 
-      {/* Claimable amount for connected user */}
+      {/* Claimable status for connected user */}
       {isConnected && userStats && (
         <motion.div
           initial={{ opacity: 0, y: 16 }}
@@ -145,17 +152,25 @@ export const StatsSection: React.FC = () => {
               <TrendingUp className="w-6 h-6 text-tertiary-dim" />
             </div>
             <div>
-              <p className="font-label text-xs uppercase tracking-widest text-outline mb-1">Claimable Amount</p>
+              <p className="font-label text-xs uppercase tracking-widest text-outline mb-1">
+                Claimable Amount
+              </p>
               <p className="font-headline text-2xl font-bold">
                 {userStats.canClaim ? (
                   <span className="text-tertiary-dim">100 MTK — Ready!</span>
                 ) : (
-                  <span className="text-on-surface-variant">0 MTK — On Cooldown</span>
+                  <span className="text-on-surface-variant">
+                    0 MTK — On Cooldown
+                  </span>
                 )}
               </p>
             </div>
           </div>
-          <Badge variant={userStats.canClaim ? "success" : "outline"} dot={!userStats.canClaim} pulseDot={userStats.canClaim}>
+          <Badge
+            variant={userStats.canClaim ? "success" : "outline"}
+            dot={!userStats.canClaim}
+            pulseDot={userStats.canClaim}
+          >
             {userStats.canClaim ? "Available Now" : "Cooling Down"}
           </Badge>
         </motion.div>

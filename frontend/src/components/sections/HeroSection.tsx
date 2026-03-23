@@ -60,8 +60,9 @@ export const HeroSection: React.FC = () => {
           className="font-body text-on-surface-variant text-lg md:text-xl max-w-xl mb-10 leading-relaxed"
         >
           Experience the Synthetic Void. Claim your{" "}
-          <span className="text-primary font-semibold">100 MTK</span> tokens every 24 hours.
-          A gateway to the next generation of decentralized liquidity.
+          <span className="text-primary font-semibold">100 MTK</span> tokens
+          every 24 hours. A gateway to the next generation of decentralized
+          liquidity.
         </motion.p>
 
         <motion.div
@@ -80,30 +81,19 @@ export const HeroSection: React.FC = () => {
               Connect Wallet
             </Button>
           )}
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={() => document.getElementById("faucet")?.scrollIntoView({ behavior: "smooth" })}
-          >
-            {isConnected ? "Go to Faucet" : "View Docs"}
-          </Button>
-        </motion.div>
-
-        {/* Mini stats */}
-        <motion.div
-          variants={itemVariants}
-          className="mt-10 flex flex-wrap gap-6 justify-center md:justify-start"
-        >
-          {[
-            { label: "Claim Amount", value: "100 MTK" },
-            { label: "Cooldown", value: "24 Hours" },
-            { label: "Max Supply", value: "10M MTK" },
-          ].map((stat) => (
-            <div key={stat.label} className="text-center md:text-left">
-              <p className="font-headline text-lg font-bold text-on-surface">{stat.value}</p>
-              <p className="font-label text-[10px] uppercase tracking-widest text-outline">{stat.label}</p>
-            </div>
-          ))}
+          {isConnected && (
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={() =>
+                document
+                  .getElementById("faucet")
+                  ?.scrollIntoView({ behavior: "smooth" })
+              }
+            >
+              Go to Faucet
+            </Button>
+          )}
         </motion.div>
       </motion.div>
 

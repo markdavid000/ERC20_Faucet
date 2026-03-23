@@ -1,11 +1,13 @@
 export interface ContractStats {
-  maxSupply: string;
-  totalSupply: string;
-  claimAmount: string;
-  cooldown: number;
   name: string;
   symbol: string;
   decimals: number;
+  totalSupply: string;
+  maxSupply: string;
+  claimAmount: string;
+  cooldown: number;
+  totalSupplyRaw: number;
+  maxSupplyRaw: number;
 }
 
 export interface UserStats {

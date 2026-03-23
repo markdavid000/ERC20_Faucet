@@ -1,7 +1,7 @@
 import React from "react";
 import { motion } from "framer-motion";
 
-const FOOTER_LINKS = ["Contract", "Twitter", "Discord", "Docs"];
+const FOOTER_LINKS = ["Contract"];
 
 export const Footer: React.FC = () => {
   return (
@@ -20,7 +20,8 @@ export const Footer: React.FC = () => {
           {FOOTER_LINKS.map((link) => (
             <a
               key={link}
-              href="#"
+              href="https://sepolia-blockscout.lisk.com/address/0x9A1132a0184f63F86B75Ef392Ad732A7959688b1#code"
+              target="_blank"
               className="font-body text-xs tracking-widest uppercase text-slate-500 hover:text-primary-fixed transition-colors"
             >
               {link}

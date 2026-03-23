@@ -1,25 +1,47 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Droplets, Clock, CheckCircle, ExternalLink, AlertCircle, Timer } from "lucide-react";
+import {
+  Droplets,
+  Clock,
+  CheckCircle,
+  ExternalLink,
+  AlertCircle,
+  Timer,
+  List,
+} from "lucide-react";
 import { GlassCard } from "../ui/GlassCard";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
-import { SectionHeader } from "../ui/SectionHeader";
+import { StatusLogModal } from "../ui/StatusLogModal";
 import { useApp } from "../../context/AppContext";
 import { useRequestToken } from "../../hooks/useRequestToken";
-import { getRelativeTime, shortenAddress, formatCountdown } from "../../lib/utils";
+import {
+  getRelativeTime,
+  shortenAddress,
+  formatCountdown,
+} from "../../lib/utils";
 import { BLOCK_EXPLORER } from "../../config/contract";
 
 export const FaucetSection: React.FC = () => {
-  const { address, isConnected, userStats, cooldownSeconds, statusLog } = useApp();
-  const { loading, success, txHash, error, requestToken, reset } = useRequestToken();
+  const { address, isConnected, userStats, cooldownSeconds, statusLog } =
+    useApp();
+  const { loading, success, txHash, error, requestToken, reset } =
+    useRequestToken();
 
   const [manualAddress, setManualAddress] = useState("");
   const [addressError, setAddressError] = useState("");
+  const [showModal, setShowModal] = useState(false);
 
-  // Pre-fill address when wallet connects
+  // Pre-fill when wallet connects; clear on disconnect
   useEffect(() => {
-    if (address) setManualAddress(address);
+    setManualAddress(address ?? "");
+    setAddressError("");
+  }, [address]);
+
+  // Fix #3: reset form fields when address changes
+  useEffect(() => {
+    reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [address]);
 
   const handleRequest = async () => {
@@ -29,39 +51,39 @@ export const FaucetSection: React.FC = () => {
       return;
     }
     await requestToken();
+
+    setManualAddress("");
   };
 
-  const handleReset = () => {
-    reset();
-  };
-
-  const isCoolingDown = userStats && !userStats.canClaim && cooldownSeconds > 0;
+  const isCoolingDown =
+    !!userStats && !userStats.canClaim && cooldownSeconds > 0;
+  const isButtonDisabled = loading || !isConnected || isCoolingDown;
 
   return (
     <section className="mb-32" id="faucet">
-      <SectionHeader title="Faucet Interface" subtitle="Input your address to receive testnet assets." />
-
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         {/* Main Faucet Card */}
-        <GlassCard className="lg:col-span-2 relative overflow-hidden" padding="xl">
-          {/* BG icon */}
+        <GlassCard
+          className="lg:col-span-2 relative overflow-hidden"
+          padding="xl"
+        >
           <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
             <Droplets className="w-28 h-28 text-primary" />
           </div>
 
-          {/* Header */}
+          {/* Card header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 mb-12">
             <div>
-              <h2 className="font-headline text-3xl font-bold uppercase tracking-tight mb-2">
+              <h2 className="font-headline text-3xl font-bold uppercase tracking-tight mb-1">
                 Faucet Interface
               </h2>
-              <p className="text-on-surface-variant font-body">
+              <p className="text-on-surface-variant font-body text-sm">
                 Input your address to receive testnet assets.
               </p>
             </div>
 
             {/* Cooldown badge */}
-            <div className="flex items-center gap-3 bg-secondary-container/20 px-4 py-2 rounded-full border border-secondary-container/30">
+            <div className="flex items-center gap-3 bg-secondary-container/20 px-4 py-2 rounded-full border border-secondary-container/30 flex-shrink-0">
               <Clock className="w-4 h-4 text-secondary flex-shrink-0" />
               {isCoolingDown ? (
                 <span className="text-secondary font-label text-xs font-bold uppercase tracking-widest">
@@ -75,8 +97,7 @@ export const FaucetSection: React.FC = () => {
             </div>
           </div>
 
-          <div className="space-y-8">
-            {/* Input */}
+          <div className="space-y-6">
             <Input
               label="Wallet Address"
               placeholder="0x..."
@@ -89,7 +110,7 @@ export const FaucetSection: React.FC = () => {
               accentColor="primary"
             />
 
-            {/* Cooldown Warning */}
+            {/* Cooldown warning */}
             <AnimatePresence>
               {isCoolingDown && isConnected && (
                 <motion.div
@@ -100,19 +121,22 @@ export const FaucetSection: React.FC = () => {
                 >
                   <Timer className="w-5 h-5 text-error flex-shrink-0 mt-0.5" />
                   <div>
-                    <p className="text-error font-bold text-sm font-label">Cooldown Active</p>
+                    <p className="text-error font-bold text-sm font-label">
+                      Cooldown Active
+                    </p>
                     <p className="text-on-surface-variant text-xs font-body mt-0.5">
-                      You can claim again in{" "}
+                      Come back in{" "}
                       <span className="text-primary font-semibold font-mono">
                         {formatCountdown(cooldownSeconds)}
-                      </span>
+                      </span>{" "}
+                      to claim your next 100 MTK.
                     </p>
                   </div>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Not Connected Warning */}
+            {/* Not connected notice */}
             <AnimatePresence>
               {!isConnected && (
                 <motion.div
@@ -129,41 +153,49 @@ export const FaucetSection: React.FC = () => {
               )}
             </AnimatePresence>
 
-            {/* Request Button */}
+            {/* Fix #7: disabled when not connected */}
             <Button
               variant="primary"
               size="xl"
               fullWidth
               loading={loading}
               loadingText="Requesting Tokens…"
-              disabled={loading || (isCoolingDown ? true : false)}
+              disabled={isButtonDisabled}
               onClick={handleRequest}
             >
               Request Tokens
             </Button>
 
-            {/* Error state */}
+            {/* Inline error */}
             <AnimatePresence>
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -8 }}
-                  className="flex items-center gap-3 p-4 rounded-xl bg-error-container/10 border border-error/20"
+                  className="flex items-start gap-3 p-4 rounded-xl bg-error-container/10 border border-error/20"
                 >
-                  <AlertCircle className="w-5 h-5 text-error flex-shrink-0" />
+                  <AlertCircle className="w-5 h-5 text-error flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-error font-bold text-sm">Transaction Failed</p>
-                    <p className="text-on-surface-variant text-xs truncate">{error}</p>
+                    <p className="text-error font-bold text-sm font-label">
+                      Claim Failed
+                    </p>
+                    {/* Fix #4: errors are already human-readable via parseContractError */}
+                    <p className="text-on-surface-variant text-xs font-body mt-0.5 break-words">
+                      {error}
+                    </p>
                   </div>
-                  <button onClick={handleReset} className="text-xs text-outline hover:text-on-surface uppercase tracking-wider font-label">
+                  <button
+                    onClick={reset}
+                    className="text-xs text-outline hover:text-on-surface uppercase tracking-wider font-label flex-shrink-0"
+                  >
                     Dismiss
                   </button>
                 </motion.div>
               )}
             </AnimatePresence>
 
-            {/* Success state */}
+            {/* Success */}
             <AnimatePresence>
               {success && txHash && (
                 <motion.div
@@ -177,9 +209,11 @@ export const FaucetSection: React.FC = () => {
                     <CheckCircle className="w-5 h-5 text-on-tertiary" />
                   </div>
                   <div>
-                    <p className="text-on-tertiary font-bold text-sm font-label">Success!</p>
+                    <p className="text-on-tertiary font-bold text-sm font-label">
+                      100 MTK Received!
+                    </p>
                     <p className="text-on-surface-variant text-xs font-body">
-                      100 MTK sent to {shortenAddress(manualAddress)}
+                      Sent to {shortenAddress(manualAddress)}
                     </p>
                   </div>
                   <a
@@ -196,31 +230,52 @@ export const FaucetSection: React.FC = () => {
           </div>
         </GlassCard>
 
-        {/* Status Log */}
+        {/* Fix #2: Status Log with View More modal */}
         <GlassCard padding="lg">
-          <h3 className="font-headline text-xl font-bold uppercase mb-6 flex items-center gap-2">
-            <Clock className="w-5 h-5 text-primary" />
-            Status Log
-          </h3>
-          <div className="space-y-5">
+          <div className="flex items-center justify-between mb-6">
+            <h3 className="font-headline text-xl font-bold uppercase flex items-center gap-2">
+              <Clock className="w-5 h-5 text-primary" />
+              Status Log
+            </h3>
+            {statusLog.length > 6 && (
+              <button
+                onClick={() => setShowModal(true)}
+                className="text-[10px] text-primary font-label uppercase tracking-widest hover:underline flex items-center gap-1"
+              >
+                <List className="w-3 h-3" />
+                View All ({statusLog.length})
+              </button>
+            )}
+          </div>
+
+          <div className="space-y-4">
             {statusLog.slice(0, 6).map((entry, i) => (
               <motion.div
                 key={entry.id}
                 initial={{ opacity: 0, x: -12 }}
                 animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.06, duration: 0.35 }}
+                transition={{ delay: i * 0.05, duration: 0.3 }}
                 className={[
                   "border-l-2 pl-4 py-1",
-                  entry.type === "refill" ? "border-outline-variant opacity-50" : "border-outline-variant",
+                  entry.type === "refill"
+                    ? "border-outline-variant opacity-50"
+                    : entry.type === "claimed"
+                    ? "border-primary"
+                    : entry.type === "minted"
+                    ? "border-secondary"
+                    : entry.type === "transfer"
+                    ? "border-tertiary-dim"
+                    : "border-outline-variant",
                 ].join(" ")}
               >
-                <p className="text-xs font-label text-outline uppercase mb-1">
+                <p className="text-xs font-label text-outline uppercase mb-0.5">
                   {getRelativeTime(entry.timestamp)}
                 </p>
                 <p className="text-sm font-body text-on-surface">
-                  {entry.type === "claimed" && `Tokens Requested (${entry.amount} MTK)`}
-                  {entry.type === "minted" && `Tokens Minted (${entry.amount} MTK)`}
-                  {entry.type === "transfer" && `Transfer (${entry.amount} MTK)`}
+                  {entry.type === "claimed" && `Claimed ${entry.amount} MTK`}
+                  {entry.type === "minted" && `Minted ${entry.amount} MTK`}
+                  {entry.type === "transfer" &&
+                    `Transferred ${entry.amount} MTK`}
                   {entry.type === "refill" && "Faucet Refilled"}
                 </p>
                 {entry.address && (
@@ -233,7 +288,7 @@ export const FaucetSection: React.FC = () => {
                     href={`${BLOCK_EXPLORER}/tx/${entry.txHash}`}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-xs text-primary hover:underline flex items-center gap-1 mt-0.5"
+                    className="text-xs text-primary hover:underline flex items-center gap-1 mt-0.5 font-label"
                   >
                     Tx <ExternalLink className="w-2.5 h-2.5" />
                   </a>
@@ -242,13 +297,25 @@ export const FaucetSection: React.FC = () => {
             ))}
 
             {statusLog.length === 0 && (
-              <p className="text-on-surface-variant text-sm font-body text-center py-4">
+              <p className="text-on-surface-variant text-sm font-body text-center py-6">
                 No activity yet.
               </p>
+            )}
+
+            {statusLog.length > 6 && (
+              <button
+                onClick={() => setShowModal(true)}
+                className="w-full mt-2 py-2 text-xs text-on-surface-variant font-label uppercase tracking-widest hover:text-primary transition-colors border border-outline-variant/20 rounded-lg hover:border-primary/30"
+              >
+                View {statusLog.length - 6} more →
+              </button>
             )}
           </div>
         </GlassCard>
       </div>
+
+      {/* Fix #2: Modal */}
+      {showModal && <StatusLogModal onClose={() => setShowModal(false)} />}
     </section>
   );
 };

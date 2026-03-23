@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef } from "react";
+import { ethers } from "ethers";
 import { useApp } from "../context/AppContext";
 import { useContract } from "./useContract";
-import { formatTokenAmount } from "../lib/utils";
+import { formatTokenAmount, tokenAmountToNumber } from "../lib/utils";
 
 export function useContractRead() {
   const {
@@ -41,17 +42,21 @@ export function useContractRead() {
         readContract.COOLDOWN(),
       ]);
 
+      const dec = Number(decimals);
+
       setContractStats({
         name: String(name),
         symbol: String(symbol),
-        decimals: Number(decimals),
-        totalSupply: formatTokenAmount(totalSupply as bigint),
-        maxSupply: formatTokenAmount(maxSupply as bigint),
-        claimAmount: formatTokenAmount(claimAmount as bigint),
+        decimals: dec,
+        totalSupply: formatTokenAmount(totalSupply as bigint, dec),
+        maxSupply: formatTokenAmount(maxSupply as bigint, dec),
+        claimAmount: formatTokenAmount(claimAmount as bigint, dec),
         cooldown: Number(cooldown),
+        totalSupplyRaw: tokenAmountToNumber(totalSupply as bigint, dec),
+        maxSupplyRaw: tokenAmountToNumber(maxSupply as bigint, dec),
       });
     } catch (err) {
-      console.error("[useContractRead] fetchContractStats error:", err);
+      console.error("[useContractRead] fetchContractStats:", err);
     } finally {
       setStatsLoading(false);
       fetchingStats.current = false;
@@ -83,7 +88,7 @@ export function useContractRead() {
         cooldownRemaining,
       });
     } catch (err) {
-      console.error("[useContractRead] fetchUserStats error:", err);
+      console.error("[useContractRead] fetchUserStats:", err);
     } finally {
       setUserStatsLoading(false);
       fetchingUser.current = false;

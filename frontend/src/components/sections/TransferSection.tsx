@@ -1,27 +1,43 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { SendHorizonal, CheckCircle, AlertCircle, ExternalLink, TriangleAlert } from "lucide-react";
+import {
+  SendHorizonal,
+  CheckCircle,
+  AlertCircle,
+  ExternalLink,
+  TriangleAlert,
+} from "lucide-react";
 import { GlassCard } from "../ui/GlassCard";
 import { Button } from "../ui/Button";
 import { Input } from "../ui/Input";
-import { SectionHeader } from "../ui/SectionHeader";
 import { useTransferToken } from "../../hooks/useTransferToken";
 import { useApp } from "../../context/AppContext";
 import { shortenAddress } from "../../lib/utils";
 import { BLOCK_EXPLORER } from "../../config/contract";
 
 export const TransferSection: React.FC = () => {
-  const { isConnected, userStats } = useApp();
-  const { loading, success, txHash, error, transfer, reset } = useTransferToken();
+  const { isConnected, userStats, address } = useApp();
+  const { loading, success, txHash, error, transfer, reset } =
+    useTransferToken();
 
   const [recipient, setRecipient] = useState("");
   const [amount, setAmount] = useState("");
   const [recipientError, setRecipientError] = useState("");
   const [amountError, setAmountError] = useState("");
 
+  useEffect(() => {
+    setRecipient("");
+    setAmount("");
+    setRecipientError("");
+    setAmountError("");
+    reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [address]);
+
   const handleTransfer = async () => {
     setRecipientError("");
     setAmountError("");
+
     let valid = true;
     if (!recipient.trim()) {
       setRecipientError("Recipient address is required.");
@@ -33,6 +49,8 @@ export const TransferSection: React.FC = () => {
     }
     if (!valid) return;
     await transfer(recipient, amount);
+
+    handleReset();
   };
 
   const handleReset = () => {
@@ -43,17 +61,23 @@ export const TransferSection: React.FC = () => {
 
   return (
     <section className="mb-32" id="transfer">
-      <SectionHeader title="Void Transfer" subtitle="Beam your assets across the synthetic network." />
-
       <GlassCard padding="xl" className="relative overflow-hidden">
-        {/* BG icon */}
         <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
           <SendHorizonal className="w-28 h-28" />
         </div>
 
+        {/* Fix #9: single heading inside the card */}
+        <div className="mb-10">
+          <h2 className="font-headline text-3xl font-bold uppercase tracking-tight mb-1">
+            Void Transfer
+          </h2>
+          <p className="text-on-surface-variant font-body text-sm">
+            Beam your assets across the synthetic network.
+          </p>
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
-          {/* Form */}
-          <div className="space-y-8">
+          <div className="space-y-6">
             {!isConnected && (
               <div className="flex items-start gap-3 p-4 rounded-xl bg-surface-container border border-outline-variant/20">
                 <AlertCircle className="w-5 h-5 text-outline flex-shrink-0 mt-0.5" />
@@ -67,7 +91,10 @@ export const TransferSection: React.FC = () => {
               label="Recipient Address"
               placeholder="0x..."
               value={recipient}
-              onChange={(e) => { setRecipient(e.target.value); setRecipientError(""); }}
+              onChange={(e) => {
+                setRecipient(e.target.value);
+                setRecipientError("");
+              }}
               error={recipientError}
               disabled={!isConnected}
             />
@@ -78,9 +105,14 @@ export const TransferSection: React.FC = () => {
               type="number"
               min="0"
               value={amount}
-              onChange={(e) => { setAmount(e.target.value); setAmountError(""); }}
+              onChange={(e) => {
+                setAmount(e.target.value);
+                setAmountError("");
+              }}
               error={amountError}
-              hint={userStats ? `Your balance: ${userStats.balance} MTK` : undefined}
+              hint={
+                userStats ? `Your balance: ${userStats.balance} MTK` : undefined
+              }
               disabled={!isConnected}
             />
 
@@ -97,21 +129,28 @@ export const TransferSection: React.FC = () => {
               Transfer Tokens
             </Button>
 
-            {/* Error */}
+            {/* Error — Fix #4: human-readable */}
             <AnimatePresence>
               {error && (
                 <motion.div
                   initial={{ opacity: 0, y: -8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0 }}
-                  className="flex items-center gap-3 p-4 rounded-xl bg-error-container/10 border border-error/20"
+                  className="flex items-start gap-3 p-4 rounded-xl bg-error-container/10 border border-error/20"
                 >
-                  <AlertCircle className="w-5 h-5 text-error flex-shrink-0" />
+                  <AlertCircle className="w-5 h-5 text-error flex-shrink-0 mt-0.5" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-error font-bold text-sm">Transfer Failed</p>
-                    <p className="text-on-surface-variant text-xs truncate">{error}</p>
+                    <p className="text-error font-bold text-sm font-label">
+                      Transfer Failed
+                    </p>
+                    <p className="text-on-surface-variant text-xs font-body mt-0.5 break-words">
+                      {error}
+                    </p>
                   </div>
-                  <button onClick={reset} className="text-xs text-outline hover:text-on-surface uppercase font-label">
+                  <button
+                    onClick={reset}
+                    className="text-xs text-outline hover:text-on-surface uppercase font-label flex-shrink-0"
+                  >
                     Dismiss
                   </button>
                 </motion.div>
@@ -132,7 +171,9 @@ export const TransferSection: React.FC = () => {
                     <CheckCircle className="w-5 h-5 text-on-tertiary" />
                   </div>
                   <div>
-                    <p className="text-on-tertiary font-bold text-sm font-label">Transfer Complete!</p>
+                    <p className="text-on-tertiary font-bold text-sm font-label">
+                      Transfer Complete!
+                    </p>
                     <p className="text-on-surface-variant text-xs font-body">
                       {amount} MTK sent to {shortenAddress(recipient)}
                     </p>
@@ -151,7 +192,7 @@ export const TransferSection: React.FC = () => {
             </AnimatePresence>
           </div>
 
-          {/* Info Panel */}
+          {/* Protocol info */}
           <div className="bg-surface-container/50 rounded-2xl p-8 border border-outline-variant/20">
             <h4 className="font-headline font-bold mb-6 uppercase text-primary-dim flex items-center gap-2">
               <TriangleAlert className="w-4 h-4" />
