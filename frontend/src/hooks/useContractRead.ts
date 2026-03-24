@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef } from "react";
-import { ethers } from "ethers";
+// import { ethers } from "ethers";
 import { useApp } from "../context/AppContext";
 import { useContract } from "./useContract";
 import { formatTokenAmount, tokenAmountToNumber } from "../lib/utils";
